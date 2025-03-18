@@ -8,7 +8,7 @@ import com.google.android.gms.wearable.DataMapItem
 import com.google.android.gms.wearable.MessageEvent
 import com.google.android.gms.wearable.WearableListenerService
 
-public class WatchDataLayerListenerService : WearableListenerService() {
+class WatchDataLayerListenerService : WearableListenerService() {
 
     companion object {
         private const val TAG = "WatchDataLayerService"
@@ -17,6 +17,7 @@ public class WatchDataLayerListenerService : WearableListenerService() {
     }
 
     override fun onDataChanged(dataEvents: DataEventBuffer) {
+        Log.d(TAG, "onDataChanged: 데이터 받은")
         dataEvents.forEach { event ->
             if (event.type == DataEvent.TYPE_CHANGED) {
                 val path = event.dataItem.uri.path
@@ -37,6 +38,7 @@ public class WatchDataLayerListenerService : WearableListenerService() {
                     LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
 
                     Log.d(TAG, "워치: 타이머 상태 수신: $timerName, 활성 타이머: $activeStopwatch")
+                    Log.d(TAG, "워치: 타이머 맵: $dataMap")
                 }
             }
         }
