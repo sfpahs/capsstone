@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import com.example.pre_capstone.TimerService
 import com.example.pre_capstone.loadUserName
 import com.example.pre_capstone.logOut
 import com.example.pre_capstone.model.TimerSetting
@@ -137,6 +138,9 @@ fun myBox(modifier: Modifier, navHostController: NavHostController, timerSetting
             shape = RoundedCornerShape(20.dp)
         )
         .clickable {
+            TimerService.maxRestTime = timerSetting.restTime
+            TimerService.maxWorkingTime = timerSetting.workTime
+
             val route ="timer/${timerSetting.name}/${timerSetting.workTime}/${timerSetting.restTime}/${timerSetting.index}"
             navHostController.navigate(route) },
         verticalArrangement = Arrangement.Center,

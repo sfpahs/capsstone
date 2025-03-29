@@ -12,6 +12,9 @@ import android.content.Intent
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.provider.Settings
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -24,6 +27,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
+import kotlin.coroutines.coroutineContext
 
 class TimerService : Service() {
     companion object {
@@ -33,13 +37,15 @@ class TimerService : Service() {
         const val ACTION_PAUSE = "com.example.pre_capstone.PAUSE"
         const val ACTION_STOP = "com.example.pre_capstone.STOP"
         const val ACTION_SWITCH = "com.example.pre_capstone.SWITCH"
+        var maxWorkingTime =0
+        var maxRestTime =0
     }
 
     // 콜백 인터페이스 정의
     interface TimerCallback {
         fun onTimerTick(workTimer: Int, restTimer: Int, activeStopwatch: Int)
     }
-
+    var isFirstVibrate = true
     private val binder = TimerBinder()
     private var timerJob: Job? = null
     private var isRunning = false
@@ -56,6 +62,7 @@ class TimerService : Service() {
     private var startTime = LocalDateTime.MIN
     private var mulTime = false
     private var callback: TimerCallback? = null
+
 
     inner class TimerBinder : Binder() {
         fun getService(): TimerService = this@TimerService
@@ -142,10 +149,8 @@ class TimerService : Service() {
                 NotificationManager.IMPORTANCE_HIGH
             )
             channel.description = "타이머 알림 채널"
-            channel.enableLights(false)
-            channel.enableVibration(false)
             channel.setSound(null, null) // 소리 비활성화
-
+            channel.vibrationPattern = null // 진동 비활성화
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
         }
@@ -210,7 +215,7 @@ class TimerService : Service() {
 
     private fun switchTimer() {
         timerJob?.cancel()
-
+        isFirstVibrate = true
         activeStopwatch = if (activeStopwatch == 1) {
             totalWorkTime += workTimer
             workTimer = 0
@@ -232,9 +237,24 @@ class TimerService : Service() {
                 delay(1000L)
                 if (activeStopwatch == 1) {
                     workTimer += 1 * if (mulTime) 60 else 1
+
+                    if(isFirstVibrate && (workTimer> maxWorkingTime)){
+                        isFirstVibrate = false
+                        vibrate(context = baseContext, 400)
+
+                    }
                 } else {
                     restTimer += 1 * if (mulTime) 60 else 1
+                    if((restTimer/maxRestTime)>=1&& (restTimer/60)%5 == 0){
+                        vibrate(context = baseContext, 1000)
+
+                    }
                 }
+
+
+
+
+                //vibrate(context = baseContext, 500)
                 // 콜백으로 UI 업데이트
                 callback?.onTimerTick(workTimer, restTimer, activeStopwatch)
                 updateNotification()
@@ -284,6 +304,7 @@ class TimerService : Service() {
             .addAction(R.drawable.ic_stop, "종료", stopPendingIntent)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setVibrate(null)
             .setOngoing(true)
             .build()
     }
@@ -320,5 +341,22 @@ class TimerService : Service() {
         notificationManager.cancel(NOTIFICATION_ID)
         timerJob?.cancel()
         super.onDestroy()
+    }
+}
+
+fun vibrate(context: Context , ms : Int) {
+    val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+        vibratorManager.defaultVibrator
+    } else {
+        @Suppress("DEPRECATION")
+        context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+    }
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        vibrator.vibrate(VibrationEffect.createOneShot(ms.toLong(), VibrationEffect.DEFAULT_AMPLITUDE))
+    } else {
+        @Suppress("DEPRECATION")
+        vibrator.vibrate(ms.toLong())
     }
 }

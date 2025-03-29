@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -262,7 +263,7 @@ fun StopwatchUI(
     isChecked: Boolean
 ) {
     Box(contentAlignment = Alignment.Center, modifier = modifier) {
-        var step : Float = 0f
+        var step : Int = 0
         Canvas(modifier = modifier) {
             val strokeWidth = 50f
             val radius = size.minDimension / 2 - strokeWidth / 5
@@ -276,22 +277,28 @@ fun StopwatchUI(
 
             // 진행 원 그리기 (경과 시간)
             var sweepAngle = if (maxTime > 0) {
-                Math.min(360f,(360f/3 * (elapsedTime*3 / maxTime)))
+                if(activeTimer ==1)
+                    Math.min(360f,(360f/3 * (elapsedTime*3 / maxTime)))
+                else
+                    Math.min(360f,(360f * (elapsedTime.toFloat() / maxTime)))
             } else {
                 0f
             }
 
-            step = sweepAngle/120
+            step = (sweepAngle/120).toInt()
 
+
+            Log.i("color", "StopwatchUI: $step")
             drawArc(
                 color = if (activeTimer == 1){
                     when(step){
-                        1f-> Color.Yellow
-                        2f->Color.Red
-                        else->Color.Black
+                        1-> Color.Yellow
+                        2-> Color.Magenta
+                        3->Color.Red
+                        else->Color.Red
                     }
                 }
-                else Color.Black,
+                else Color.Green,
                 startAngle = -90f,
                 sweepAngle = sweepAngle,
                 useCenter = false,

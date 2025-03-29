@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -45,6 +46,14 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.TimeZone
 
+
+class test(){
+    companion object{
+       var restList : MutableList<Float> = mutableListOf()
+    }
+}
+
+
 @Preview
 @Composable
 fun weekHistoryApp( viewModel: TimerViewModel = viewModel()){
@@ -56,7 +65,9 @@ fun weekHistoryApp( viewModel: TimerViewModel = viewModel()){
     //todo 이후에 weekHistoryGraph에 세팅넣어서 색상하고 기록데이터 들고와서 그래프그리기
 
     if(timerSettings.isEmpty()){
-        Column(modifier = Modifier.fillMaxSize(),
+        Column(modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
             ){
@@ -80,7 +91,8 @@ fun weekHistoryApp( viewModel: TimerViewModel = viewModel()){
             ) {
                 StackedBarChart(  // 스택형 바 차트 컴포넌트
                     modifier = Modifier
-                        .height(400.dp),
+                        .height(400.dp)
+                        .fillMaxWidth(),
                     groupBarChartData = graphSetting!!.second
                 )
                 Legends(  // 차트 하단에 범례 표시
@@ -107,7 +119,6 @@ fun weekHistoryGraph(timerSettings : List<TimerSetting>, callback: (Pair<Legends
     val barSize = 5      // 각 그룹에 포함될 바의 개수 (3개 카테고리)
     val listSize = 7    // 차트에 표시할 그룹(X축 데이터 포인트)의 개수
     val yStepSize = 8
-
     //todo 데이터리스트 만드는것 수작업할것 기록 ->데이터리스트
     var groupBarData : List<GroupBar>
 
@@ -122,15 +133,17 @@ fun weekHistoryGraph(timerSettings : List<TimerSetting>, callback: (Pair<Legends
             colorPaletteList.add(Color(element.backgroundColor))
             listtest.add(LegendLabel(color = Color(element.backgroundColor),name = element.name))
         }
+        colorPaletteList.add(Color.Gray)
+        listtest.add(LegendLabel(color = (Color.Gray),name = "휴식"))
         val legendsConfig = LegendsConfig(
             legendLabelList = listtest,
             gridColumnCount = 3  // 범례를 3열로 표시
         )
 
         val xAxisData = AxisData.Builder()
-            .axisStepSize(30.dp)           // X축 눈금 간격
+            .axisStepSize(10.dp)           // X축 눈금 간격
             .steps(listSize - 1)           // X축 눈금 개수 (9개)
-            .startDrawPadding(16.dp)       // 시작 지점 여백
+            .startDrawPadding(40.dp)       // 시작 지점 여백
             .labelData { index ->
                 val daysOfWeek = listOf("월", "화", "수", "목", "금", "토", "일")
                 daysOfWeek[index % daysOfWeek.size] // 인덱스를 요일로 매핑
@@ -138,7 +151,8 @@ fun weekHistoryGraph(timerSettings : List<TimerSetting>, callback: (Pair<Legends
             .build()
 
         val yAxisData = AxisData.Builder()
-            .steps(yStepSize)              // Y축 눈금 개수 (10개)
+            .steps(yStepSize)
+            .backgroundColor(Color.White)
             .labelAndAxisLinePadding(20.dp)// 라벨과 축 사이 간격
             // 축 오프셋
             .labelData { index ->          // Y축 라벨 생성 로직
@@ -164,7 +178,8 @@ fun weekHistoryGraph(timerSettings : List<TimerSetting>, callback: (Pair<Legends
                 selectionHighlightData = SelectionHighlightData(
                     isHighlightFullBar = true,  // 바 전체 강조
                     groupBarPopUpLabel = { name, value ->
-                        "총 시간: ${String.format("%.1f", value*3)}시간"},
+                        "${String.format("%.0f", (value - (test.restList[name.toInt()]/60)*3))}H" +
+                                "${String.format("%.0f", test.restList[name.toInt()]/60)}H"},
                         highlightTextBackgroundColor = Color.White
 
                 )
@@ -210,11 +225,13 @@ private fun createCustomGroupBarData(listSize: Int, barSize: Int, callback: (Lis
         val groupBarList = mutableListOf<GroupBar>()
         val timeZone = TimeZone.getDefault()
         for (i in 0 until listSize) {
+            var totalrestTime = 0f
             val barList = mutableListOf<BarData>()
             val daysOfWeek = listOf("월", "화", "수", "목", "금", "토", "일")
 
             if (data[i].isNotEmpty()) {
                 for (j in 0 until data[i].size) {
+                    totalrestTime +=data[i][j].second;
                     barList.add(
                         BarData(
                             point = Point(x = i.toFloat(), y = data[i][j].first.toFloat()/3/60),
@@ -223,6 +240,13 @@ private fun createCustomGroupBarData(listSize: Int, barSize: Int, callback: (Lis
                         )
                     )
                 }
+                barList.add(
+                    BarData(
+                        point = Point(x = i.toFloat(), y = totalrestTime/3/60),
+                        label = "Category ${data[i].size+1}",
+                        description = "${daysOfWeek[i]}, Category ${data[i].size+1}: ${totalrestTime}"
+                    )
+                )
             } else {
                 barList.add(
                     BarData(
@@ -233,9 +257,11 @@ private fun createCustomGroupBarData(listSize: Int, barSize: Int, callback: (Lis
                 )
             }
 
+            test.restList.add(totalrestTime)
+            Log.i("graph", "createCustomGroupBarData: ${totalrestTime}")
             groupBarList.add(
                 GroupBar(
-                    label = daysOfWeek[i],
+                    label = "${totalrestTime}",
                     barList = barList
                 )
             )
